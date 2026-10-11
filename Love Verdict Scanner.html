@@ -1,0 +1,348 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Love Verdict Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Hind:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered column on phones; photo frame left and scan panel right from 760px up. */
+:root {
+  --bg: #fff1ee;
+  --fg: #2a1118;
+  --muted: #7a5560;
+  --card: #ffffff;
+  --line: #f1cfd0;
+  --accent: #e0245e;
+  --accent-ink: #ffffff;
+  --gold: #f2a900;
+  --yes: #17884b;
+  --no: #c93a3a;
+  --font-display: "Dela Gothic One", "Arial Black", Impact, sans-serif;
+  --font-body: "Hind", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a0d13;
+    --fg: #ffe9ee;
+    --muted: #c49aa6;
+    --card: #271218;
+    --line: #4a2531;
+    --accent: #ff4f85;
+    --accent-ink: #1a0d13;
+    --gold: #ffc83d;
+    --yes: #43d17f;
+    --no: #ff7070;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1a0d13;
+  --fg: #ffe9ee;
+  --muted: #c49aa6;
+  --card: #271218;
+  --line: #4a2531;
+  --accent: #ff4f85;
+  --accent-ink: #1a0d13;
+  --gold: #ffc83d;
+  --yes: #43d17f;
+  --no: #ff7070;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-inline: 16px;
+  padding-block: 28px 40px;
+}
+.wrap { max-width: 920px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(34px, 8vw, 64px);
+  line-height: 1.02;
+  margin: 8px 0 12px;
+  text-wrap: balance;
+}
+h1 .no { color: var(--accent); }
+.lede { color: var(--muted); max-width: 52ch; margin: 0; }
+
+.stage { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 760px) { .stage { grid-template-columns: 5fr 6fr; align-items: start; } }
+
+.photo {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-width: 100%;
+  background: var(--card);
+  border: 2px dashed var(--line);
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.photo:hover, .photo.drag { border-color: var(--accent); }
+.photo:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.photo.filled { border-style: solid; border-color: var(--accent); cursor: default; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ph { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; text-align: center; color: var(--muted); }
+.ph svg { width: 96px; height: 96px; }
+.ph strong { color: var(--fg); font-weight: 600; font-size: 18px; }
+.ph span { font-size: 14px; }
+
+.scan { position: absolute; inset: 0; pointer-events: none; }
+.scan::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 22px 6px var(--accent);
+  animation: sweep 1.2s ease-in-out infinite alternate;
+}
+.scan::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(transparent 0 92%, color-mix(in srgb, var(--accent) 30%, transparent) 100%);
+}
+@keyframes sweep { from { top: 0; } to { top: calc(100% - 3px); } }
+
+.stamp {
+  position: absolute; right: 12px; bottom: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 5vw, 32px);
+  padding: 6px 14px;
+  border: 4px solid currentColor;
+  border-radius: 10px;
+  transform: rotate(-8deg);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  animation: thud 0.35s cubic-bezier(.2,1.6,.4,1);
+}
+.stamp.yes { color: var(--yes); }
+.stamp.no { color: var(--no); }
+@keyframes thud { from { transform: rotate(-8deg) scale(2.2); opacity: 0; } to { transform: rotate(-8deg) scale(1); opacity: 1; } }
+
+.panel { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+button, .btn {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+button.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 2px var(--line); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:focus-visible, .btn:focus-within { outline: 3px solid var(--fg); outline-offset: 2px; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.readouts { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.readouts li { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline; }
+.readouts .name { font-weight: 500; }
+.readouts .val { font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.bar { grid-column: 1 / -1; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width 0.8s cubic-bezier(.2,.8,.2,1); }
+
+.verdict {
+  border-radius: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.verdict .label { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.verdict .big { font-family: var(--font-display); font-size: clamp(30px, 7vw, 46px); line-height: 1.05; }
+.verdict.yes .big { color: var(--yes); }
+.verdict.no .big { color: var(--no); }
+.verdict .pct { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+.verdict .line { margin: 0; color: var(--muted); }
+
+.note { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; margin: 0; max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scan::before { animation: none; top: 50%; }
+  .stamp { animation: none; }
+  .bar i { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Love Scanner</div>
+    <h1>Will it happen <span class="no">or not?</span></h1>
+    <p class="lede">Upload your photo. The scanner checks whether your love story will start or not, and gives you the verdict straight away.</p>
+  </header>
+
+  <section class="stage">
+    <div class="photo" id="drop" tabindex="0" role="button" aria-label="Choose a photo or drop one here">
+      <div class="ph" id="ph">
+        <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="48" cy="36" r="16"/>
+          <path d="M16 84c2-18 16-28 32-28s30 10 32 28"/>
+          <path d="M74 14v14M67 21h14" stroke="var(--accent)"/>
+        </svg>
+        <strong>Add your photo here</strong>
+        <span>Tap to choose, or drag a photo in</span>
+      </div>
+      <img id="img" alt="Your photo" hidden>
+      <div class="scan" id="scan" hidden></div>
+      <div class="stamp" id="stamp" hidden></div>
+    </div>
+
+    <div class="panel">
+      <div class="actions">
+        <label class="btn" id="pick">Choose photo<input type="file" id="file" accept="image/*"></label>
+        <button class="ghost" id="again" disabled>Scan again</button>
+      </div>
+
+      <ul class="readouts" id="readouts">
+        <li><span class="name">Smile factor</span><span class="val" data-v>--</span><div class="bar"><i data-b></i></div></li>
+        <li><span class="name">Swag level</span><span class="val" data-v>--</span><div class="bar"><i data-b></i></div></li>
+        <li><span class="name">Heart setting</span><span class="val" data-v>--</span><div class="bar"><i data-b></i></div></li>
+        <li><span class="name">Luck signal</span><span class="val" data-v>--</span><div class="bar"><i data-b></i></div></li>
+      </ul>
+
+      <div class="verdict" id="verdict" aria-live="polite">
+        <div class="label">Verdict</div>
+        <div class="big" id="vbig">Waiting for a photo</div>
+        <p class="line" id="vline">The scan starts as soon as you add a photo.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">This is just for fun. The same photo always gives the same result, and it has nothing to do with real relationships. Your photo stays in your browser and is never uploaded.</p>
+</div>
+
+<script>
+(function () {
+  var drop = document.getElementById('drop');
+  var file = document.getElementById('file');
+  var img = document.getElementById('img');
+  var ph = document.getElementById('ph');
+  var scan = document.getElementById('scan');
+  var stamp = document.getElementById('stamp');
+  var again = document.getElementById('again');
+  var verdict = document.getElementById('verdict');
+  var vbig = document.getElementById('vbig');
+  var vline = document.getElementById('vline');
+  var vals = document.querySelectorAll('[data-v]');
+  var bars = document.querySelectorAll('[data-b]');
+
+  var seedBase = 0, timer = null;
+
+  function hash(str) {
+    var h = 2166136261;
+    for (var i = 0; i < str.length; i += 53) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function resetReadouts() {
+    bars.forEach(function (b) { b.style.width = '0'; });
+    vals.forEach(function (v) { v.textContent = '--'; });
+    stamp.hidden = true;
+    verdict.className = 'verdict';
+  }
+
+  function runScan() {
+    clearTimeout(timer);
+    resetReadouts();
+    scan.hidden = false;
+    again.disabled = true;
+    vbig.textContent = 'Scanning...';
+    vline.textContent = 'Checking face, style and luck.';
+    var quick = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    timer = setTimeout(reveal, quick ? 300 : 2400);
+  }
+
+  function reveal() {
+    var r = rng(seedBase);
+    var scores = [], sum = 0;
+    for (var i = 0; i < 4; i++) {
+      var s = Math.round(18 + r() * 80);
+      scores.push(s); sum += s;
+    }
+    var pct = Math.round(sum / 4);
+    bars.forEach(function (b, i) { b.style.width = scores[i] + '%'; });
+    vals.forEach(function (v, i) { v.textContent = scores[i] + '%'; });
+
+    var yes = pct >= 50;
+    var msg;
+    if (pct >= 80) msg = 'Sure thing. Just send the first message.';
+    else if (pct >= 65) msg = 'It will happen, with a little effort.';
+    else if (pct >= 50) msg = 'It will happen, but build the friendship first.';
+    else if (pct >= 35) msg = 'Tough for now. Give it more time.';
+    else msg = "It won't happen. Invite them for tea, maybe luck changes.";
+
+    scan.hidden = true;
+    stamp.hidden = false;
+    stamp.className = 'stamp ' + (yes ? 'yes' : 'no');
+    stamp.textContent = yes ? "IT'S A YES" : "IT'S A NO";
+    verdict.className = 'verdict ' + (yes ? 'yes' : 'no');
+    vbig.textContent = yes ? 'It will happen!' : "It won't happen";
+    vline.innerHTML = '<span class="pct">Match score ' + pct + '%</span> &middot; ' + msg;
+    again.disabled = false;
+  }
+
+  function load(f) {
+    if (!f || f.type.indexOf('image/') !== 0) {
+      vbig.textContent = 'That is not a photo';
+      vline.textContent = 'Choose a JPG, PNG or WebP photo.';
+      return;
+    }
+    var fr = new FileReader();
+    fr.onload = function () {
+      img.src = fr.result;
+      img.hidden = false;
+      ph.hidden = true;
+      drop.classList.add('filled');
+      seedBase = hash(String(fr.result));
+      runScan();
+    };
+    fr.readAsDataURL(f);
+  }
+
+  file.addEventListener('change', function () { load(file.files[0]); file.value = ''; });
+  drop.addEventListener('click', function () { if (!drop.classList.contains('filled')) file.click(); });
+  drop.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && !drop.classList.contains('filled')) { e.preventDefault(); file.click(); }
+  });
+  ['dragenter', 'dragover'].forEach(function (n) {
+    drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (n) {
+    drop.addEventListener(n, function (e) { e.preventDefault(); drop.classList.remove('drag'); });
+  });
+  drop.addEventListener('drop', function (e) { load(e.dataTransfer.files[0]); });
+  again.addEventListener('click', function () { runScan(); });
+})();
+</script>
+
+</body></html>
